@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.hik.apigatephonedemo.CameraPlayDemoActivity">
+    <EditText
+        android:id="@+id/etPlayUrl"
+        android:layout_width="match_parent"
+        android:layout_height="400dp"
+        android:background="@null"
+        android:hint="RTSP播放Url"
+        android:visibility="gone"/>
+    <EditText
+        android:id="@+id/etIndexCode"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="@null"
+        android:hint="监控点IndexCode"/>
+    <Button
+        android:id="@+id/btnGetUrl"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="获取预览URL"/>
+    <Button
+        android:id="@+id/btnPlay"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="视频预览"/>
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tvResponse"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
