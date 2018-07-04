@@ -37,7 +37,7 @@ public class LoginActivity extends AppCompatActivity {
             ToastUtil.showToast(this, "参数不完整，请输入host、appkey和appSecret");
         } else {
             HttpClient.init(host, userName, password);
-            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            Intent intent = new Intent(LoginActivity.this, CameraPlayDemoActivity.class);
             startActivity(intent);
         }
     }

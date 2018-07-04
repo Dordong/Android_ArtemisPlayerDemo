@@ -4,7 +4,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
     defaultConfig {
-        applicationId "com.hik.apigatephonedemo"
+        applicationId "com.hik.apigatephonedemopaly"
         minSdkVersion 17
         targetSdkVersion 18
         versionCode 1

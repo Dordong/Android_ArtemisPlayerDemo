@@ -19,17 +19,17 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:background="@null"
-        android:hint="监控点IndexCode"/>
+        android:hint="请输入监控点IndexCode"/>
     <Button
         android:id="@+id/btnGetUrl"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:text="获取预览URL"/>
+        android:text="点击获取预览URL"/>
     <Button
         android:id="@+id/btnPlay"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:text="视频预览"/>
+        android:text="点击视频预览"/>
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent">
