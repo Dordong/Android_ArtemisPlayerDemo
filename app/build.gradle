@@ -56,4 +56,5 @@ dependencies {
     //    compile project(':artemis_lib')
     //    compile project(':okgo')
     compile project(':PullRefreshLibrary')
+    compile files('libs/ecs.jar')
 }

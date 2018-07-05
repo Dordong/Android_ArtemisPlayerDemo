@@ -72,7 +72,7 @@ public class CameraPlayDemoActivity extends AppCompatActivity implements View.On
 
                     /*
                     //二根据监控点编号获取RTSP流地址(向下兼容用)
-                    //获得播放URL，如rtsp://10.33.25.27:556/pag://10.16.70.227:7302:11000000001310011645:0:MAIN:TCP?streamform=rtp&checkinfo=ewogICAidGltZSIgOiAiMjAxODA2MjZUMDk1MDI1WiIsCiAgICJ1cmwiIDogInJ0c3A6Ly8xMC4zMy4yNS4yNzo1NTYvcGFnOi8vMTAuMTYuNzAuMjI3OjczMDI6MTEwMDAwMDAwMDEzMTAwMTE2NDU6MDpNQUlOOlRDUD9zdHJlYW1mb3JtPXJ0cCIKfQo%3D&idinfo=EAAAAAAQAADXgX%2FKoVSDCNYI%2FZ5YRgHW1MiD%2BZry2qBWGpSEGSbWOMANcPF1uojGJL7SwcIpD3g%3D
+                    //获得播放URL，如rtsp://xxxxx
                     String url = MainActivity.ARTEMIS + "/api/vms/v1/rtsp/basic/" + etIndexCode.getText().toString().trim();
                     Map<String, String> queries = new HashMap<String, String>();
                     strResult = HttpClient.doGet(url, queries);
