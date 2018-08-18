@@ -709,6 +709,8 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB, PlayerC
         mIsRecord = false;
 
         stopWriteStreamData();
+        mPlayerHandler.setPreRecordFlag(mPlayerPort, false);
+
     }
 
     /**
