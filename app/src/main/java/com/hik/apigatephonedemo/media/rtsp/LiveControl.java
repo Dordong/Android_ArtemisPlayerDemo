@@ -10,12 +10,16 @@ import com.hik.apigatephonedemo.utils.DebugLog;
 import com.hik.apigatephonedemo.utils.UtilSDCard;
 import com.hik.mcrsdk.rtsp.RtspClient;
 import com.hik.mcrsdk.rtsp.RtspClientCallback;
+import com.hikvision.hiktransform.HikMediaTransform;
+import com.mobile.exception.MediaPlayerException;
 
 import org.MediaPlayer.PlayM4.Player;
 import org.MediaPlayer.PlayM4.Player.MPSystemTime;
+import org.MediaPlayer.PlayM4.PlayerCallBack;
 import org.MediaPlayer.PlayM4.PlayerCallBack.PlayerDisplayCB;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -26,74 +30,74 @@ import static com.hik.apigatephonedemo.AudioVideoActivity.PTZ_RESULT;
 
 /**
  * 预览控制层
- * 
+ *
  * @author huangweifeng
  * @Data 2013-10-21
  */
-public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
-    private final String     TAG              = this.getClass().getSimpleName();
+public class LiveControl implements RtspClientCallback, PlayerDisplayCB, PlayerCallBack.PlayerPreRecordCB {
+    private final String TAG = this.getClass().getSimpleName();
     /**
      * 创建播放库句柄对象
      */
-    private Player           mPlayerHandler;
+    private Player mPlayerHandler;
     /**
      * 创建RTSP取流库句柄对象
      */
-    private RtspClient       mRtspHandler;
+    private RtspClient mRtspHandler;
     /**
      * 播放库播放端口
      */
-    private int              mPlayerPort      = -1;
+    private int mPlayerPort = -1;
     /**
      * 初始化阶段
      */
-    public final int         LIVE_INIT        = 0;
+    public final int LIVE_INIT = 0;
     /**
      * 取流阶段
      */
-    public final int         LIVE_STREAM      = 1;
+    public final int LIVE_STREAM = 1;
     /**
      * 播放阶段
      */
-    public final int         LIVE_PLAY        = 2;
+    public final int LIVE_PLAY = 2;
     /**
      * 释放资源阶段
      */
-    public final int         LIVE_RELEASE     = 3;
+    public final int LIVE_RELEASE = 3;
     /**
      * 预览状态
      */
-    private int              mLiveState       = LIVE_INIT;
+    private int mLiveState = LIVE_INIT;
     /**
      * 播放地址的URL，支持MAG或者流媒体
      */
-    private String           mUrl             = "";
+    private String mUrl = "";
     /**
      * 播放使用的SurfaceView对象
      */
-    private SurfaceView      mSurfaceView;
+    private SurfaceView mSurfaceView;
     /**
      * 创建RTSP引擎索引
      */
-    private int              mRtspEngineIndex = RtspClient.RTSPCLIENT_INVALIDATE_ENGINEID;
-    private LiveCallBack     mLiveCallBack    = null;
-    private int              connectNum       = 0;
+    private int mRtspEngineIndex = RtspClient.RTSPCLIENT_INVALIDATE_ENGINEID;
+    private LiveCallBack mLiveCallBack = null;
+    private int connectNum = 0;
     /**
      * 抓拍图片文件
      */
-    private File             mPictureFile     = null;
+    private File mPictureFile = null;
     /**
      * 录像文件
      */
-    private File             mRecordFile      = null;
+    private File mRecordFile = null;
     /**
      * 是否正在录像
      */
-    private boolean          mIsRecord        = true;
+    private boolean mIsRecord = true;
     /**
      * 数据流
      */
-    private ByteBuffer       mStreamHeadDataBuffer;
+    private ByteBuffer mStreamHeadDataBuffer;
     /**
      * 文件输出流
      */
@@ -101,21 +105,29 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
     /**
      * 播放流量
      */
-    private long             mStreamRate      = 0;
+    private long mStreamRate = 0;
     /**
      * 设置SD卡使用限度，当小于256M时，提示SD卡内存不足，根据具体情况可以修改
      */
-    private int              mSDCardSize      = 256 * 1024 * 1024;
+    private int mSDCardSize = 256 * 1024 * 1024;
     /**
      * 转封装状态
      */
-    private int              mTransState      = -1;
-    private String           mDeviceUserName  = "";
-    private String           mDevicePassword  = "";
+    private int mTransState = -1;
+    private String mDeviceUserName = "";
+    private String mDevicePassword = "";
+
+    /**
+     * 转换后视频文件路径
+     */
+    private String dstFilePath = "";
+    /**
+     * 转换视频文件路径
+     */
+    private String srcFilePath = "";
 
     /**
      * 构造函数
-     *
      */
     public LiveControl() {
         init();
@@ -123,7 +135,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 控制层初始化方法 void
-     * 
+     *
      * @since V1.0
      */
     public void init() {
@@ -131,12 +143,12 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
         mRtspHandler = RtspClient.getInstance();
         mLiveState = LIVE_INIT;
     }
-    
+
     /**
      * 设置预览参数
-     * 
-     * @param url 播放地址(过MAG/流媒体)
-     * @param name 登录设备的用户名
+     *
+     * @param url      播放地址(过MAG/流媒体)
+     * @param name     登录设备的用户名
      * @param password 登录设备的密码 void
      * @since V1.0
      */
@@ -148,7 +160,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 设置控制层回调接口
-     * 
+     *
      * @param liveCallBack
      * @since V1.0
      */
@@ -158,7 +170,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 启动控制层播放
-     * 
+     *
      * @param surfaceView
      * @since V1.0
      */
@@ -177,7 +189,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 获取当前播放状态
-     * 
+     *
      * @return LIVE_INIT初始化、LIVE_STREAM取流、LIVE_PLAY播放、LIVE_RELEASE释放资源
      * @since V1.0
      */
@@ -187,7 +199,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 启动RTSP开始取流
-     * 
+     *
      * @since V1.0
      */
     private void startRtsp() {
@@ -222,7 +234,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 停止预览方法
-     * 
+     *
      * @since V1.0
      */
     public void stop() {
@@ -240,13 +252,13 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
         if (null != mLiveCallBack) {
             mLiveCallBack.onMessageCallback(ConstantLive.STOP_SUCCESS);
         }
-        
+
         mLiveState = LIVE_INIT;
     }
 
     /**
      * 停止RTSP
-     * 
+     *
      * @since V1.0
      */
     private void stopRtsp() {
@@ -261,7 +273,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 关闭播放库 void
-     * 
+     *
      * @since V1.0
      */
     private void closePlayer() {
@@ -315,20 +327,21 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
                 } else {
                     DebugLog.error(TAG, "MediaPlayer Header success!");
                 }
-            break;
+                break;
             default:
                 processStreamData(data, length);
-            break;
+                break;
         }
-        processRecordData(dataType, data, length);
+//        processRecordData(dataType, data, length);
     }
 
     /**
      * 录像数据处理
-     * 
-     * @param dataType 数据流
+     *
+     * @param dataType   数据流
      * @param dataBuffer 数据缓存
      * @param dataLength 数据长度
+     *                   废弃，录制视频的码流需通过播放器回调拿取
      */
     private void processRecordData(int dataType, byte[] dataBuffer, int dataLength) {
         if (null == dataBuffer || dataLength == 0) {
@@ -352,9 +365,9 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 录像数据写到文件
-     * 
+     *
      * @param recordData 录像数据
-     * @param length 录像数据长度
+     * @param length     录像数据长度
      * @since V1.0
      */
     private boolean writeStreamData(byte[] recordData, int length) {
@@ -382,7 +395,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 处理数据流头
-     * 
+     *
      * @param data
      * @param len
      * @return boolean
@@ -396,10 +409,10 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
         boolean ret = startPlayer(data, len);
         return ret;
     }
-    
+
     /**
      * 开启播放库方法
-     * 
+     *
      * @param data
      * @param len
      * @return boolean
@@ -470,9 +483,9 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 抓拍 void
-     * 
+     *
      * @param filePath 存放文件路径
-     * @param picName 抓拍时文件的名称
+     * @param picName  抓拍时文件的名称
      * @return true-抓拍成功，false-抓拍失败
      * @since V1.0
      */
@@ -521,7 +534,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 获取JPEG图片数据
-     * 
+     *
      * @return JPEG图片的数据.
      * @since V1.0
      */
@@ -575,8 +588,8 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 创建图片文件
-     * 
-     * @param path 图片路径
+     *
+     * @param path     图片路径
      * @param fileName 图片名字
      * @return true - 图片创建成功 or false - 图片创建失败
      * @since V1.0
@@ -606,9 +619,9 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 抓拍图片写到SDCard
-     * 
+     *
      * @param picData 图片数据
-     * @param length 图片数据长度
+     * @param length  图片数据长度
      * @since V1.0
      */
     private boolean writePictureToFile(byte[] picData, int length) {
@@ -642,7 +655,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 删除图片文件
-     * 
+     *
      * @since V1.0
      */
     private void removePictureFile() {
@@ -660,7 +673,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 创建文件夹
-     * 
+     *
      * @param path 文件路径
      * @return 文件夹路径
      * @since V1.0
@@ -685,7 +698,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 停止录像 void
-     * 
+     *
      * @since V1.0
      */
     public void stopRecord() {
@@ -700,7 +713,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 停止写入数据流
-     * 
+     *
      * @since V1.0
      */
     private void stopWriteStreamData() {
@@ -716,12 +729,16 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
         } finally {
             mRecordFileOutputStream = null;
             mRecordFile = null;
+            HikMediaTransform.startTransform(srcFilePath, dstFilePath,
+                    2, 5, 0x0100,
+                    1, 0x2001,
+                    2, 48000);
         }
     }
 
     /**
      * 启动录像方法
-     * 
+     *
      * @param filePath 录像文件路径
      * @param fileName 录像文件名称
      * @return true-启动录像成功，false-启动录像失败
@@ -750,14 +767,20 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
         }
 
         boolean ret = createRecordFile(filePath, fileName);
+        dstFilePath = filePath + "/Trans" + fileName;
+        srcFilePath = filePath + "/" + fileName;
         if (!ret) {
             DebugLog.error(TAG, "createRecordFile() fail 创建录像文件失败");
             return false;
+        } else {
+            DebugLog.debug(TAG, "转换前视频文件目录：" + srcFilePath);
+            DebugLog.debug(TAG, "转换后视频文件目录：" + srcFilePath);
         }
 
-        ret = writeStreamHead(mRecordFile);
+        ret = mPlayerHandler.setPreRecordFlag(mPlayerPort, true);
+        mPlayerHandler.setPreRecordCallBack(mPlayerPort, this);
         if (!ret) {
-            DebugLog.error(TAG, "writeStreamHead() 写文件失败");
+            DebugLog.error(TAG, "PLAYER_RECORD_ERROR");
             removeRecordFile();
             return false;
         }
@@ -769,8 +792,8 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 创建录像文件
-     * 
-     * @param path 文件路径
+     *
+     * @param path     文件路径
      * @param fileName 文件名
      * @return true - 创建成功 or false - 创建失败
      * @since V1.0
@@ -797,47 +820,47 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 写流头文件
-     * 
+     *
      * @param file 写入的文件
      * @return true - 写入头文件成功. false - 写入头文件失败.
      * @since V1.0
      */
-    private boolean writeStreamHead(File file) {
-    	if (null == file || null == mStreamHeadDataBuffer) {
-    		Log.e("AAA", "mStreamHeadDataBuffer is null!");
-            return false;
-        }
-
-        byte[] tempByte = mStreamHeadDataBuffer.array();
-        if (null == tempByte) {
-            return false;
-        }
-        try {
-            if (null == mRecordFileOutputStream) {
-                mRecordFileOutputStream = new FileOutputStream(file);
-            }
-            mRecordFileOutputStream.write(tempByte, 0, tempByte.length);
-        } catch (Exception e) {
-            e.printStackTrace();
-            if (mRecordFileOutputStream != null) {
-                try {
-                    mRecordFileOutputStream.close();
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                }
-            }
-            mRecordFileOutputStream = null;
-            mStreamHeadDataBuffer = null;
-            tempByte = null;
-            return false;
-        }
-
-        return true;
-    }
+//    private boolean writeStreamHead(File file) {
+//    	if (null == file || null == mStreamHeadDataBuffer) {
+//    		Log.e("AAA", "mStreamHeadDataBuffer is null!");
+//            return false;
+//        }
+//
+//        byte[] tempByte = mStreamHeadDataBuffer.array();
+//        if (null == tempByte) {
+//            return false;
+//        }
+//        try {
+//            if (null == mRecordFileOutputStream) {
+//                mRecordFileOutputStream = new FileOutputStream(file);
+//            }
+//            mRecordFileOutputStream.write(tempByte, 0, tempByte.length);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            if (mRecordFileOutputStream != null) {
+//                try {
+//                    mRecordFileOutputStream.close();
+//                } catch (IOException e1) {
+//                    e1.printStackTrace();
+//                }
+//            }
+//            mRecordFileOutputStream = null;
+//            mStreamHeadDataBuffer = null;
+//            tempByte = null;
+//            return false;
+//        }
+//
+//        return true;
+//    }
 
     /**
      * 删除录像文件
-     * 
+     *
      * @since V1.0
      */
     private void removeRecordFile() {
@@ -856,7 +879,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 开启音频
-     * 
+     *
      * @return boolean
      * @since V1.0
      */
@@ -880,7 +903,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 关闭音频
-     * 
+     *
      * @return boolean
      * @since V1.0
      */
@@ -903,7 +926,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 获取JPEG图片大小
-     * 
+     *
      * @return JPEG图片的大小.
      * @since V1.0
      */
@@ -922,9 +945,9 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 向播放库塞数据
-     * 
+     *
      * @param data
-     * @param len void
+     * @param len  void
      * @since V1.0
      */
     private void processStreamData(byte[] data, int len) {
@@ -933,9 +956,9 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
             return;
         }
         if (null != mPlayerHandler) {
-        	
+
 //        	DebugLog.error(TAG, "processStreamData() Stream data :" + data.toString() + "len: " + len);
-        	
+
             boolean ret = mPlayerHandler.inputData(mPlayerPort, data, len);
             if (!ret) {
                 DebugLog.error(TAG, "processStreamData() Stream data :" + data.toString() + "len: " + len);
@@ -967,7 +990,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 返回已经播放的流量 void
-     * 
+     *
      * @return long
      * @since V1.0
      */
@@ -977,7 +1000,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 清空流量统计 void
-     * 
+     *
      * @since V1.0
      */
     public void clearStreamRate() {
@@ -986,7 +1009,7 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
     /**
      * 获取OSD时间
-     * 
+     *
      * @return Calendar
      * @since V1.0
      */
@@ -1021,24 +1044,22 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
 
         return systemTime;
     }
+
     /**
      * 发送云台控制命令
      *
      * @param action "LEFT","RIGHT","UP","DOWN","LEFT_UP","LEFT_DOWN","RIGHT_UP","RIGHT_DOWN","ZOOMIN","ZOOMOUT"
      */
-    public void sendCtrlCmd(final String action, final String indexcode)
-    {
+    public void sendCtrlCmd(final String action, final String indexcode) {
         if (LIVE_PLAY != mLiveState) {
             mLiveCallBack.onMessagePTZCallBack(ConstantLive.PTZ_FAILED_NPLAY_STATE, null, null);
         } else {
-            new Thread(new Runnable()
-            {
+            new Thread(new Runnable() {
                 @Override
-                public void run()
-                {
+                public void run() {
                     // 发送控制命令
                     String msg = ApiGate.getInstance().startPTZ(action, indexcode);
-                    mLiveCallBack.onMessagePTZCallBack(PTZ_RESULT,null,msg);
+                    mLiveCallBack.onMessagePTZCallBack(PTZ_RESULT, null, msg);
                 }
             }).start();
         }
@@ -1047,33 +1068,30 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
     /**
      * 停止云台控制
      */
-    public void stopCloudCtrl(final String action, final String indexcode)
-    {
+    public void stopCloudCtrl(final String action, final String indexcode) {
         if (LIVE_PLAY != mLiveState) {
             mLiveCallBack.onMessagePTZCallBack(ConstantLive.PTZ_FAILED_NPLAY_STATE, null, null);
         } else {
-            new Thread(new Runnable()
-            {
+            new Thread(new Runnable() {
 
                 @Override
-                public void run()
-                {
+                public void run() {
                     String msg = ApiGate.getInstance().stopPTZ(action, indexcode);
-                    mLiveCallBack.onMessagePTZCallBack(PTZ_RESULT,null,msg);
+                    mLiveCallBack.onMessagePTZCallBack(PTZ_RESULT, null, msg);
                 }
             }).start();
         }
     }
 
-   public void playBack(final String indexcode, final String beginTime, final String endTime, final String bCascade) {
-       new Thread(new Runnable() {
-           @Override
-           public void run() {
-               String playbackUrl = ApiGate.getInstance().getPlayBackUrl(indexcode, beginTime, endTime, bCascade);
-               mLiveCallBack.onMessagePTZCallBack(PLAYBACK_RESULT,null,playbackUrl);
-           }
-       }).start();
-   }
+    public void playBack(final String indexcode, final String beginTime, final String endTime, final String bCascade) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String playbackUrl = ApiGate.getInstance().getPlayBackUrl(indexcode, beginTime, endTime, bCascade);
+                mLiveCallBack.onMessagePTZCallBack(PLAYBACK_RESULT, null, playbackUrl);
+            }
+        }).start();
+    }
 
     @Override
     public void onDisplay(int arg0, byte[] arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7) {
@@ -1088,4 +1106,22 @@ public class LiveControl implements RtspClientCallback, PlayerDisplayCB {
         }
     }
 
+    @Override
+    public void onPreRecord(int i, byte[] data, int dataLength) {
+        try {
+            if (null == mRecordFile) {
+                throw new MediaPlayerException("startRecord() VodPlayer start record failed!", MediaPlayerException.ERROR_RECORD_FAILED);
+            }
+            if (null == mRecordFileOutputStream) {
+                mRecordFileOutputStream = new FileOutputStream(mRecordFile);
+            }
+            mRecordFileOutputStream.write(data, 0, dataLength);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (MediaPlayerException e) {
+            e.printStackTrace();
+        }
+    }
 }
